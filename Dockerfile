@@ -16,10 +16,11 @@ RUN pip install --no-cache-dir \
     --extra-index-url https://download.pytorch.org/whl/cpu \
     || echo "PyTorch CPU unavailable — emotion MLP disabled, DeepFace fallback active"
 
-# CLIP for YOLO-World — use archive URL (git+https blocked on HF build servers)
+# CLIP for YOLO-World — optional; app falls back gracefully if unavailable
 RUN pip install --no-cache-dir \
     "https://github.com/ultralytics/CLIP/archive/refs/heads/main.tar.gz" \
-    || pip install --no-cache-dir "openai-clip"
+    || pip install --no-cache-dir "openai-clip" \
+    || echo "CLIP unavailable — YOLO-World object detection will be disabled at runtime"
 
 # CV + data science layer
 RUN pip install --no-cache-dir \
