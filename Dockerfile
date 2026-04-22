@@ -29,9 +29,6 @@ RUN pip install --no-cache-dir "mediapipe==0.10.14"
 # Step D — scikit-learn
 RUN pip install --no-cache-dir "scikit-learn>=1.4.0"
 
-# Step E — ChromaDB (optional; app falls back if unavailable)
-RUN python -c "import subprocess,sys; r=subprocess.run([sys.executable,'-m','pip','install','--no-cache-dir','chromadb>=0.5.0,<1.0.0']); exit(0)"
-
 # Step F — DeepFace + TensorFlow CPU together
 # --no-deps on deepface avoids pulling opencv-python (headless already installed)
 RUN pip install --no-cache-dir "tensorflow-cpu" && \
