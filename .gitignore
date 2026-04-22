@@ -1,0 +1,55 @@
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Model weights (large files — auto-downloaded on first run)
+*.pt
+*.pth
+models/
+
+# Databases & persistent stores
+chroma_db/
+session_log.db
+*.db
+
+# Recordings
+recordings/
+*.avi
+*.mp4
+
+# Known faces (personal data)
+known_faces/*.jpg
+known_faces/*.jpeg
+known_faces/*.png
+known_faces/*.bmp
+
+# DeepFace cache
+known_faces/representations_*.pkl
+
+# Environment variables
+.env
+.envrc
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+batch/logs/

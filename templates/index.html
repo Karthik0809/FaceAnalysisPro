@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>FaceAnalysis Pro — Real-Time AI Vision</title>
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    :root{
+      --bg:#0d1117; --surface:#161b22; --card:#21262d; --border:#30363d;
+      --accent:#3fb950; --accent-glow:#3fb95040; --accent-dim:#238636;
+      --text:#e6edf3; --muted:#7d8590; --red:#f85149; --amber:#d29922;
+      --blue:#79c0ff; --purple:#bc8cff; --teal:#39d399;
+    }
+    html,body{height:100%;overflow:hidden;}
+    body{
+      background:var(--bg);color:var(--text);
+      font-family:system-ui,-apple-system,'Segoe UI',sans-serif;
+      font-size:14px;line-height:1.5;
+      display:grid;grid-template-rows:60px 1fr 36px;grid-template-columns:1fr 400px;
+    }
+
+    /* ── HEADER ── */
+    header{
+      grid-column:1/-1;display:flex;align-items:center;gap:16px;padding:0 20px;
+      background:var(--surface);border-bottom:1px solid var(--border);
+    }
+    .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;white-space:nowrap;}
+    .brand-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);
+      box-shadow:0 0 8px var(--accent);animation:pulse 1.4s ease-in-out infinite;}
+    @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 8px var(--accent);}50%{opacity:.4;box-shadow:none;}}
+    .brand span{color:var(--muted);font-weight:400;font-size:13px;}
+
+    .h-stats{display:flex;gap:20px;flex:1;justify-content:center;flex-wrap:wrap;}
+    .hstat{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);}
+    .hstat strong{color:var(--text);font-size:15px;font-variant-numeric:tabular-nums;}
+    .hstat .label{font-size:11px;text-transform:uppercase;letter-spacing:.5px;}
+
+    .h-controls{display:flex;align-items:center;gap:10px;}
+    .status-pill{
+      padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;
+      letter-spacing:.5px;border:1px solid;
+    }
+    .status-pill.live{color:var(--accent);border-color:var(--accent);background:var(--accent-glow);}
+    .status-pill.off{color:var(--red);border-color:var(--red);background:#f8514918;}
+    .status-pill.wait{color:var(--amber);border-color:var(--amber);background:#d2992218;}
+
+    .btn{
+      display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:6px;
+      border:1px solid;background:transparent;color:var(--text);font-size:13px;font-weight:600;
+      cursor:pointer;transition:all .15s;white-space:nowrap;font-family:inherit;
+    }
+    .btn-start{border-color:var(--accent);color:var(--accent);}
+    .btn-start:hover,.btn-start.active{background:var(--accent);color:#000;}
+    .btn-rec{border-color:var(--red);color:var(--red);}
+    .btn-rec:hover{background:#f8514918;}
+    .btn-rec.active{background:#f8514930;animation:pulse 1s infinite;}
+    .btn-ai{border-color:var(--purple);color:var(--purple);}
+    .btn-ai:hover,.btn-ai.active{background:#bc8cff18;}
+
+    /* ── VIDEO ── */
+    .vwrap{
+      position:relative;background:#000;overflow:hidden;
+      display:flex;align-items:center;justify-content:center;
+      border-right:1px solid var(--border);
+    }
+    #feed{max-width:100%;max-height:100%;object-fit:contain;display:none;}
+    .init-overlay{
+      position:absolute;inset:0;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;gap:16px;
+      background:var(--bg);
+    }
+    .init-icon{font-size:48px;opacity:.3;}
+    .init-title{font-size:20px;font-weight:700;color:var(--muted);letter-spacing:2px;}
+    .init-sub{font-size:13px;color:var(--muted);opacity:.6;}
+    .init-overlay.hidden{display:none;}
+
+    /* scan line effect */
+    .scanline{
+      position:absolute;inset:0;pointer-events:none;
+      background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(63,185,80,.012) 3px,rgba(63,185,80,.012) 4px);
+    }
+    /* corner brackets */
+    .corner{position:absolute;width:20px;height:20px;opacity:.5;border-style:solid;border-color:var(--accent);}
+    .corner.tl{top:8px;left:8px;  border-width:2px 0 0 2px;}
+    .corner.tr{top:8px;right:8px; border-width:2px 2px 0 0;}
+    .corner.bl{bottom:8px;left:8px; border-width:0 0 2px 2px;}
+    .corner.br{bottom:8px;right:8px;border-width:0 2px 2px 0;}
+
+    /* AI commentary overlay */
+    #commentary-overlay{
+      position:absolute;bottom:12px;left:12px;right:12px;
+      background:rgba(13,17,23,.9);border:1px solid var(--purple);border-radius:8px;
+      padding:10px 14px;font-size:13px;color:#d2b3ff;display:none;
+    }
+    #commentary-overlay.visible{display:block;}
+    .commentary-label{font-size:11px;color:var(--purple);text-transform:uppercase;
+      letter-spacing:1px;margin-bottom:4px;font-weight:600;}
+
+    /* ── SIDEBAR ── */
+    .sidebar{
+      display:flex;flex-direction:column;background:var(--surface);overflow:hidden;
+    }
+
+    /* Tab nav */
+    .tab-nav{
+      display:grid;grid-template-columns:repeat(4,1fr);
+      border-bottom:1px solid var(--border);flex-shrink:0;
+    }
+    .tab-btn{
+      padding:12px 4px;border:none;background:transparent;color:var(--muted);
+      font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;
+      border-bottom:2px solid transparent;display:flex;flex-direction:column;
+      align-items:center;gap:3px;font-family:inherit;
+    }
+    .tab-btn .icon{font-size:18px;}
+    .tab-btn:hover{color:var(--text);}
+    .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+    /* Tab panels */
+    .tab-panel{display:none;flex:1;overflow-y:auto;padding:16px;}
+    .tab-panel.active{display:block;}
+    .tab-panel::-webkit-scrollbar{width:4px;}
+    .tab-panel::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+    /* Section title */
+    .section-title{
+      font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
+      color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:8px;
+    }
+    .section-title::after{content:'';flex:1;height:1px;background:var(--border);}
+
+    /* ── FACE CARDS ── */
+    .face-card{
+      background:var(--card);border:1px solid var(--border);border-radius:10px;
+      padding:14px;margin-bottom:12px;position:relative;overflow:hidden;
+    }
+    .face-card::before{
+      content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);
+    }
+    .fc-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;}
+    .fc-name{font-size:16px;font-weight:700;}
+    .fc-id{font-size:11px;color:var(--muted);margin-top:1px;}
+    .fc-emotion{
+      display:flex;align-items:center;gap:6px;padding:4px 10px;
+      border-radius:20px;font-size:13px;font-weight:600;
+      border:1px solid;
+    }
+
+    .fc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+    .fc-stat{background:var(--surface);border-radius:6px;padding:8px 10px;}
+    .fc-stat-label{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:2px;}
+    .fc-stat-value{font-size:14px;font-weight:600;}
+
+    .fc-badges{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+    .badge-pill{
+      padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;
+      border:1px solid;
+    }
+    .badge-FOCUSED   {color:var(--accent);border-color:var(--accent);background:var(--accent-glow);}
+    .badge-DISTRACTED{color:var(--amber);border-color:var(--amber);background:#d2992218;}
+    .badge-DROWSY    {color:var(--red);border-color:var(--red);background:#f8514918;}
+    .badge-UPRIGHT   {color:var(--blue);border-color:var(--blue);background:#79c0ff18;}
+    .badge-SLOUCHING {color:var(--red);border-color:var(--red);background:#f8514918;}
+    .badge-TILTED    {color:var(--amber);border-color:var(--amber);background:#d2992218;}
+    .badge-LEAN_L,.badge-LEAN_R{color:var(--purple);border-color:var(--purple);background:#bc8cff18;}
+    .badge-SMILE{color:var(--teal);border-color:var(--teal);background:#39d39918;}
+    .badge-TALK {color:var(--blue);border-color:var(--blue);background:#79c0ff18;}
+    .badge-off  {color:var(--border);border-color:var(--border);opacity:.5;}
+
+    .fc-metrics{display:flex;flex-direction:column;gap:6px;}
+    .metric-row{display:flex;align-items:center;gap:8px;font-size:12px;}
+    .metric-label{color:var(--muted);width:72px;flex-shrink:0;}
+    .metric-bar{flex:1;height:6px;background:var(--bg);border-radius:3px;overflow:hidden;}
+    .metric-fill{height:100%;border-radius:3px;transition:width .4s;}
+    .metric-val{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums;min-width:36px;text-align:right;}
+
+    .gaze-track{flex:1;height:6px;background:var(--bg);border-radius:3px;position:relative;overflow:visible;}
+    .gaze-dot{position:absolute;top:-2px;width:10px;height:10px;border-radius:50%;
+      background:var(--accent);transition:left .25s;box-shadow:0 0 6px var(--accent);}
+
+    .match-bar{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+    .match-label{font-size:11px;color:var(--muted);margin-bottom:4px;}
+    .match-fill{height:5px;background:var(--accent);border-radius:3px;transition:width .4s;}
+    .match-pct{font-size:12px;color:var(--accent);font-weight:700;margin-top:2px;}
+
+    .no-content{
+      text-align:center;padding:40px 20px;color:var(--muted);
+    }
+    .no-content .no-icon{font-size:36px;margin-bottom:10px;opacity:.4;}
+    .no-content p{font-size:13px;}
+
+    /* ── OBJECTS TAB ── */
+    .obj-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+    .obj-card{
+      background:var(--card);border:1px solid var(--border);border-radius:8px;
+      padding:10px 12px;display:flex;align-items:center;gap:10px;
+    }
+    .obj-icon{font-size:22px;}
+    .obj-name{font-size:13px;font-weight:600;text-transform:capitalize;}
+    .obj-conf{font-size:11px;color:var(--muted);}
+
+    /* ── TOOLS TAB ── */
+    .tools-section{margin-bottom:20px;}
+    .form-group{margin-bottom:10px;}
+    .form-label{display:block;font-size:12px;font-weight:600;color:var(--muted);
+      text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+    .form-input{
+      width:100%;padding:9px 12px;background:var(--card);border:1px solid var(--border);
+      border-radius:6px;color:var(--text);font-size:14px;font-family:inherit;outline:none;
+      transition:border-color .15s;
+    }
+    .form-input:focus{border-color:var(--accent);}
+    .form-input::placeholder{color:var(--muted);}
+    input[type="file"].form-input{padding:7px 12px;cursor:pointer;}
+    .form-btn{
+      width:100%;padding:10px;background:var(--accent-dim);border:1px solid var(--accent);
+      border-radius:6px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;
+      transition:all .15s;font-family:inherit;
+    }
+    .form-btn:hover{background:var(--accent);color:#000;}
+    .form-btn.secondary{background:transparent;border-color:var(--border);color:var(--text);}
+    .form-btn.secondary:hover{border-color:var(--accent);color:var(--accent);}
+    .form-status{font-size:13px;margin-top:8px;min-height:18px;text-align:center;}
+    .form-status.ok{color:var(--accent);}
+    .form-status.err{color:var(--red);}
+    .form-status.wait{color:var(--amber);}
+
+    /* Result image panel */
+    #analyze-result{display:none;margin-top:12px;}
+    #analyze-result img{width:100%;border-radius:8px;border:1px solid var(--border);}
+    #analyze-result .result-info{
+      margin-top:8px;padding:8px 12px;background:var(--card);border-radius:6px;
+      font-size:13px;color:var(--muted);
+    }
+
+    /* API links */
+    .api-links{display:flex;flex-wrap:wrap;gap:8px;}
+    .api-link{
+      padding:5px 12px;border:1px solid var(--border);border-radius:6px;
+      font-size:12px;color:var(--muted);text-decoration:none;transition:all .15s;
+    }
+    .api-link:hover{border-color:var(--accent);color:var(--accent);}
+
+    /* ── SYSTEM TAB ── */
+    .stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px;}
+    .stat-card{
+      background:var(--card);border:1px solid var(--border);border-radius:8px;
+      padding:14px;text-align:center;
+    }
+    .stat-val{font-size:24px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;}
+    .stat-lbl{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-top:4px;}
+
+    .known-list{display:flex;flex-wrap:wrap;gap:6px;}
+    .known-chip{
+      padding:5px 12px;background:var(--card);border:1px solid var(--border);
+      border-radius:20px;font-size:13px;display:flex;align-items:center;gap:6px;
+    }
+    .known-chip::before{content:'👤';font-size:12px;}
+
+    /* Report box */
+    .report-box{
+      background:var(--card);border:1px solid var(--border);border-radius:8px;
+      padding:14px;font-size:13px;line-height:1.7;color:var(--text);
+      max-height:220px;overflow-y:auto;white-space:pre-wrap;
+    }
+    .report-box::-webkit-scrollbar{width:4px;}
+    .report-box::-webkit-scrollbar-thumb{background:var(--border);}
+
+    /* ── FOOTER ── */
+    footer{
+      grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;
+      padding:0 20px;background:var(--surface);border-top:1px solid var(--border);
+      font-size:11px;color:var(--muted);
+    }
+
+    /* Scrollbar global */
+    ::-webkit-scrollbar{width:5px;}
+    ::-webkit-scrollbar-track{background:transparent;}
+    ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+    /* Spinner */
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border);
+      border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;}
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════ HEADER ═══════════════════ -->
+<header>
+  <div class="brand">
+    <div class="brand-dot"></div>
+    FaceAnalysis Pro
+    <span>/ Real-Time AI Vision</span>
+  </div>
+
+  <div class="h-stats">
+    <div class="hstat"><div class="label">FPS</div><strong id="hfps">--</strong></div>
+    <div class="hstat"><div class="label">Faces</div><strong id="hfaces">0</strong></div>
+    <div class="hstat"><div class="label">Objects</div><strong id="hobj">0</strong></div>
+    <div class="hstat"><div class="label">Vector DB</div><strong id="hvdb">--</strong></div>
+    <div class="hstat"><div class="label">Uptime</div><strong id="huptime">0s</strong></div>
+  </div>
+
+  <div class="h-controls">
+    <button class="btn btn-ai" id="commBtn" onclick="toggleCommentary()">💬 Commentary</button>
+    <button class="btn btn-rec" id="recBtn" onclick="toggleRecording()">⏺ Record</button>
+    <button class="btn btn-start" id="startBtn" onclick="toggleStream()">▶ Start</button>
+    <div class="status-pill wait" id="statusPill">OFFLINE</div>
+  </div>
+</header>
+
+<!-- ═══════════════════ VIDEO ═══════════════════ -->
+<div class="vwrap">
+  <div class="corner tl"></div><div class="corner tr"></div>
+  <div class="corner bl"></div><div class="corner br"></div>
+  <div class="scanline"></div>
+  <div class="init-overlay" id="initOverlay">
+    <div class="init-icon">📷</div>
+    <div class="init-title">Camera Ready</div>
+    <div class="init-sub">Click <strong style="color:var(--accent)">▶ Start</strong> to begin live analysis</div>
+  </div>
+  <img id="feed" alt="live feed"/>
+  <div id="commentary-overlay">
+    <div class="commentary-label">💬 AI Commentary</div>
+    <div id="commentary-text">Analyzing scene...</div>
+  </div>
+</div>
+
+<!-- ═══════════════════ SIDEBAR ═══════════════════ -->
+<div class="sidebar">
+
+  <!-- Tab Navigation -->
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="showTab('faces',this)">
+      <span class="icon">👤</span>Faces
+    </button>
+    <button class="tab-btn" onclick="showTab('objects',this)">
+      <span class="icon">📦</span>Objects
+    </button>
+    <button class="tab-btn" onclick="showTab('tools',this)">
+      <span class="icon">🛠️</span>Tools
+    </button>
+    <button class="tab-btn" onclick="showTab('system',this)">
+      <span class="icon">📊</span>System
+    </button>
+  </div>
+
+  <!-- ── FACES TAB ── -->
+  <div class="tab-panel active" id="tab-faces">
+    <div id="face-cards">
+      <div class="no-content">
+        <div class="no-icon">👤</div>
+        <p>No faces detected yet.<br>Click <strong>▶ Start</strong> to begin.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── OBJECTS TAB ── -->
+  <div class="tab-panel" id="tab-objects">
+    <div id="obj-cards">
+      <div class="no-content">
+        <div class="no-icon">📦</div>
+        <p>No objects detected yet.<br>Objects appear when camera is running.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TOOLS TAB ── -->
+  <div class="tab-panel" id="tab-tools">
+
+    <!-- Register Face -->
+    <div class="tools-section">
+      <div class="section-title">Register a Face</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+        Upload a clear front-facing photo to register someone for recognition during live stream.
+      </p>
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input class="form-input" type="text" id="rname" placeholder="e.g. John Smith" maxlength="40"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Face Photo</label>
+        <input class="form-input" type="file" id="rfile" accept="image/*"/>
+      </div>
+      <button class="form-btn" onclick="registerFace()">➕ Register Identity</button>
+      <div class="form-status" id="rstat"></div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:20px 0;"/>
+
+    <!-- Analyze Image -->
+    <div class="tools-section">
+      <div class="section-title">Analyze an Image</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+        Upload any photo to run the full face analysis pipeline on it — works without a webcam.
+      </p>
+      <div class="form-group">
+        <label class="form-label">Select Image</label>
+        <input class="form-input" type="file" id="afile" accept="image/*"/>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button class="form-btn" onclick="analyzeImage()">🔍 Analyze</button>
+        <button class="form-btn secondary" onclick="searchFace()">🔎 Search DB</button>
+      </div>
+      <div class="form-status" id="astat"></div>
+      <div id="analyze-result">
+        <img id="result-img" alt="analyzed"/>
+        <div class="result-info" id="result-info"></div>
+      </div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:20px 0;"/>
+
+    <!-- AI Report -->
+    <div class="tools-section">
+      <div class="section-title">AI Session Report</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+        Generate a natural-language summary of the current session — emotions, attention, face matches.
+      </p>
+      <button class="form-btn secondary" onclick="generateReport()">✨ Generate Report</button>
+      <div id="report-area" style="margin-top:12px;"></div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:20px 0;"/>
+
+    <!-- API Links -->
+    <div class="tools-section">
+      <div class="section-title">Quick Links</div>
+      <div class="api-links">
+        <a class="api-link" href="/history"       target="_blank">📋 History</a>
+        <a class="api-link" href="/stats"         target="_blank">📈 Stats</a>
+        <a class="api-link" href="/cluster-faces" target="_blank">🔗 Clusters</a>
+        <a class="api-link" href="/docs"          target="_blank">📖 API Docs</a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── SYSTEM TAB ── -->
+  <div class="tab-panel" id="tab-system">
+
+    <!-- Live metrics -->
+    <div class="section-title">Live Metrics</div>
+    <div class="stats-grid" style="margin-bottom:20px;">
+      <div class="stat-card"><div class="stat-val" id="sfps">--</div><div class="stat-lbl">FPS</div></div>
+      <div class="stat-card"><div class="stat-val" id="sfaces">0</div><div class="stat-lbl">Faces</div></div>
+      <div class="stat-card"><div class="stat-val" id="sobj">0</div><div class="stat-lbl">Objects</div></div>
+      <div class="stat-card"><div class="stat-val" id="suptime">0s</div><div class="stat-lbl">Uptime</div></div>
+    </div>
+
+    <!-- Known identities -->
+    <div class="section-title">Registered Identities</div>
+    <div class="known-list" id="known-list" style="margin-bottom:20px;">
+      <span style="font-size:13px;color:var(--muted);">None registered yet — use the Tools tab.</span>
+    </div>
+
+    <!-- Session info -->
+    <div class="section-title">Session</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">
+      <div>Vector DB: <strong id="svdb" style="color:var(--text);">-- faces</strong></div>
+      <div style="margin-top:6px;">Session ID: <strong id="ssid" style="color:var(--text);font-size:11px;">--</strong></div>
+    </div>
+
+    <!-- Tech stack -->
+    <div class="section-title">Tech Stack</div>
+    <div style="font-size:12px;color:var(--muted);line-height:2;">
+      <div>🧠 MediaPipe FaceMesh (468 landmarks) + Body Pose (33 KP)</div>
+      <div>✋ MediaPipe Hands (21 landmarks, real-time finger tracking)</div>
+      <div>😊 DeepFace emotion, age &amp; gender analysis</div>
+      <div>🔍 Facenet512 face recognition (99.6% LFW accuracy)</div>
+      <div>📦 YOLO-World object detection (open-vocabulary, 60+ classes)</div>
+      <div>🧮 solvePnP head pose estimation (pitch/yaw/roll)</div>
+      <div>😴 EAR blink detection + PERCLOS drowsiness scoring</div>
+      <div>🧍 Posture classification (shoulder tilt + lateral lean)</div>
+      <div>💾 ChromaDB vector store + DBSCAN face clustering</div>
+      <div>🤖 Ollama local LLM session reports (rule-based fallback)</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════ FOOTER ═══════════════════ -->
+<footer>
+  <span>MediaPipe · Facenet512 · YOLO-World · PyTorch · ChromaDB · FastAPI · SQLite · WebSocket</span>
+  <span>FaceAnalysis Pro v3.0 — All processing runs locally, no data sent to cloud</span>
+</footer>
+
+<script>
+const EMOICON = {happy:'😊',sad:'😢',angry:'😠',surprise:'😲',fear:'😨',disgust:'🤢',neutral:'😐'};
+const EMOCLR  = {happy:'#3fb950',sad:'#79c0ff',angry:'#f85149',surprise:'#d29922',fear:'#bc8cff',disgust:'#39d399',neutral:'#7d8590'};
+const EMOBDR  = {happy:'#3fb950',sad:'#79c0ff',angry:'#f85149',surprise:'#d29922',fear:'#bc8cff',disgust:'#39d399',neutral:'#30363d'};
+const GAZEPOS = {LEFT:8, CENTER:50, RIGHT:86};
+const OBJ_ICON = {
+  pen:'🖊️',pencil:'✏️','ballpoint pen':'🖊️','computer mouse':'🖱️','wireless mouse':'🖱️',
+  'mobile phone':'📱','cell phone':'📱','laptop':'💻','tablet':'📱','keyboard':'⌨️',
+  book:'📚',notebook:'📓',glasses:'👓',sunglasses:'🕶️',watch:'⌚',wristwatch:'⌚',
+  wallet:'👛',purse:'👜',bag:'👜',backpack:'🎒','water bottle':'🍶',bottle:'🍾',
+  cup:'☕',mug:'☕',headphones:'🎧',earphones:'🎧',earbuds:'🎧',keys:'🔑',
+  scissors:'✂️',umbrella:'☂️',hat:'🧢',cap:'🧢',lipstick:'💄','lip balm':'💄',
+  camera:'📷',calculator:'🧮',stapler:'📌',ruler:'📏',coin:'🪙',food:'🍽️',
+  default:'📦'
+};
+
+let ws=null, frames=0, startTime=Date.now(), recording=false, commentaryOn=false;
+let commentaryTimer=null, streaming=false;
+
+// ── Tab switching ──────────────────────────────────────────────────────
+function showTab(name, btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── WebSocket stream ───────────────────────────────────────────────────
+function toggleStream(){
+  if(!streaming){ startStream(); } else { stopStream(); }
+}
+
+function startStream(){
+  streaming = true;
+  startTime = Date.now();
+  const btn = document.getElementById('startBtn');
+  btn.textContent='⏹ Stop';
+  btn.classList.add('active');
+  document.getElementById('statusPill').className='status-pill wait';
+  document.getElementById('statusPill').textContent='CONNECTING';
+  connect();
+}
+
+function stopStream(){
+  streaming=false;
+  if(ws){ ws.close(); ws=null; }
+  const btn = document.getElementById('startBtn');
+  btn.textContent='▶ Start'; btn.classList.remove('active');
+  setPill('off','OFFLINE');
+  document.getElementById('feed').style.display='none';
+  document.getElementById('initOverlay').classList.remove('hidden');
+}
+
+function connect(){
+  if(!streaming) return;
+  ws = new WebSocket(`ws://${location.host}/ws`);
+  ws.onopen  = () => setPill('live','LIVE');
+  ws.onclose = () => {
+    setPill('off','RECONNECTING');
+    if(streaming) setTimeout(connect,2000);
+  };
+  ws.onerror = () => ws.close();
+  ws.onmessage = ({data}) => {
+    const {frame, metadata} = JSON.parse(data);
+    const img = document.getElementById('feed');
+    img.src = 'data:image/jpeg;base64,'+frame;
+    img.style.display='block';
+    document.getElementById('initOverlay').classList.add('hidden');
+    frames++;
+    const up = Math.floor((Date.now()-startTime)/1000);
+    document.getElementById('hfps').textContent   = metadata.fps;
+    document.getElementById('hfaces').textContent = metadata.face_count;
+    document.getElementById('hobj').textContent   = (metadata.objects||[]).length;
+    document.getElementById('huptime').textContent= formatTime(up);
+    document.getElementById('sfps').textContent   = metadata.fps;
+    document.getElementById('sfaces').textContent = metadata.face_count;
+    document.getElementById('sobj').textContent   = (metadata.objects||[]).length;
+    document.getElementById('suptime').textContent= formatTime(up);
+    renderFaceCards(metadata.faces);
+    renderObjects(metadata.objects||[]);
+  };
+}
+
+function formatTime(s){ return s<60?s+'s': Math.floor(s/60)+'m '+(s%60)+'s'; }
+function setPill(cls,txt){
+  const p=document.getElementById('statusPill');
+  p.className='status-pill '+cls; p.textContent=txt;
+}
+
+// ── Face cards ─────────────────────────────────────────────────────────
+function renderFaceCards(faces){
+  const container = document.getElementById('face-cards');
+  if(!faces?.length){
+    container.innerHTML=`<div class="no-content"><div class="no-icon">👤</div><p>No faces detected</p></div>`;
+    return;
+  }
+  container.innerHTML = faces.map(f => {
+    const icon    = EMOICON[f.emotion?.toLowerCase()]||'❓';
+    const clr     = EMOCLR[f.emotion?.toLowerCase()]||'#7d8590';
+    const bdr     = EMOBDR[f.emotion?.toLowerCase()]||'#30363d';
+    const gLeft   = GAZEPOS[f.gaze]??50;
+    const percPct = Math.round((f.perclos||0)*100);
+    const percClr = percPct>35?'#f85149':percPct>15?'#d29922':'#3fb950';
+    const confPct = f.confidence?Math.round(f.confidence*100):0;
+    const topEmo  = Object.entries(f.emotion_scores||{}).sort((a,b)=>b[1]-a[1])
+                    .slice(0,2).map(([k,v])=>`${k}: ${Math.round(v)}%`).join('  ·  ');
+    const attBadge = badgePill(f.attention||'FOCUSED');
+    const postBadge= badgePill(f.posture||'UPRIGHT');
+    const smileBadge=badgePill(f.smile?'SMILE':'off','SMILE');
+    const talkBadge =badgePill(f.talking?'TALK':'off','TALK');
+
+    return `<div class="face-card">
+      <div class="fc-header">
+        <div>
+          <div class="fc-name">${f.name}</div>
+          <div class="fc-id">Face #${f.id} · ${f.gender||'?'} · Age ~${f.age||'?'}</div>
+        </div>
+        <div class="fc-emotion" style="color:${clr};border-color:${bdr};background:${clr}18;">
+          ${icon} ${f.emotion||'neutral'}
+        </div>
+      </div>
+
+      ${topEmo?`<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">${topEmo}</div>`:''}
+
+      <div class="fc-badges">
+        ${attBadge}
+        ${postBadge}
+        ${smileBadge}
+        ${talkBadge}
+        <span class="badge-pill" style="color:var(--muted);border-color:var(--border);">
+          👁 Blinks: ${f.blinks||0}
+        </span>
+      </div>
+
+      <div class="fc-metrics">
+        <div class="metric-row">
+          <span class="metric-label">Drowsiness</span>
+          <div class="metric-bar">
+            <div class="metric-fill" style="width:${percPct}%;background:${percClr};"></div>
+          </div>
+          <span class="metric-val" style="color:${percClr};">${percPct}%</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Gaze</span>
+          <div class="gaze-track">
+            <div class="gaze-dot" style="left:calc(${gLeft}% - 5px)"></div>
+          </div>
+          <span class="metric-val">${f.gaze||'?'}</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Head Pose</span>
+          <span style="font-size:12px;color:var(--muted);">
+            P <strong style="color:var(--text)">${(f.pitch||0).toFixed(0)}°</strong>
+            &nbsp;Y <strong style="color:var(--text)">${(f.yaw||0).toFixed(0)}°</strong>
+            &nbsp;R <strong style="color:var(--text)">${(f.roll||0).toFixed(0)}°</strong>
+          </span>
+        </div>
+      </div>
+
+      ${confPct>0?`
+      <div class="match-bar">
+        <div class="match-label">✅ Identity match: <strong style="color:var(--accent)">${f.name}</strong></div>
+        <div style="background:var(--bg);border-radius:3px;height:5px;overflow:hidden;">
+          <div class="match-fill" style="width:${confPct}%"></div>
+        </div>
+        <div class="match-pct">${confPct}% confidence</div>
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function badgePill(state, label=''){
+  const display = label||state;
+  const cls = (state==='off'||state===false) ? 'badge-off' : `badge-${state}`;
+  return `<span class="badge-pill ${cls}">${display}</span>`;
+}
+
+// ── Objects ────────────────────────────────────────────────────────────
+function renderObjects(objects){
+  const el = document.getElementById('obj-cards');
+  if(!objects?.length){
+    el.innerHTML=`<div class="no-content"><div class="no-icon">📦</div><p>No objects detected</p></div>`;
+    return;
+  }
+  const counts={};
+  objects.forEach(o=>counts[o.label]={count:(counts[o.label]?.count||0)+1,conf:Math.max(counts[o.label]?.conf||0,o.confidence)});
+  el.innerHTML='<div class="obj-grid">'+Object.entries(counts).map(([k,{count,conf}])=>{
+    const icon=OBJ_ICON[k.toLowerCase()]||OBJ_ICON.default;
+    return `<div class="obj-card">
+      <div class="obj-icon">${icon}</div>
+      <div>
+        <div class="obj-name">${k}${count>1?' ×'+count:''}</div>
+        <div class="obj-conf">${Math.round(conf*100)}% confidence</div>
+      </div>
+    </div>`;
+  }).join('')+'</div>';
+}
+
+// ── Register face ──────────────────────────────────────────────────────
+async function registerFace(){
+  const name=document.getElementById('rname').value.trim();
+  const file=document.getElementById('rfile').files[0];
+  const stat=document.getElementById('rstat');
+  if(!name||!file){ setStatus(stat,'warn','Please enter a name and select an image.'); return; }
+  setStatus(stat,'wait','<span class="spinner"></span> Registering...');
+  const fd=new FormData(); fd.append('name',name); fd.append('file',file);
+  try{
+    const r=await(await fetch('/register-face',{method:'POST',body:fd})).json();
+    setStatus(stat,'ok','✅ '+r.message);
+    document.getElementById('rname').value='';
+    document.getElementById('rfile').value='';
+    loadKnown();
+  }catch(e){ setStatus(stat,'err','❌ '+e.message); }
+}
+
+// ── Analyze image ──────────────────────────────────────────────────────
+async function analyzeImage(){
+  const file=document.getElementById('afile').files[0];
+  const stat=document.getElementById('astat');
+  if(!file){ setStatus(stat,'warn','Please select an image first.'); return; }
+  setStatus(stat,'wait','<span class="spinner"></span> Analyzing...');
+  const fd=new FormData(); fd.append('file',file);
+  try{
+    const r=await(await fetch('/analyze-image',{method:'POST',body:fd})).json();
+    if(r.error){ setStatus(stat,'err','❌ '+r.error); return; }
+    setStatus(stat,'ok',`✅ Found ${r.face_count} face(s), ${(r.objects||[]).length} object(s).`);
+    document.getElementById('result-img').src='data:image/jpeg;base64,'+r.annotated_image;
+    document.getElementById('result-info').textContent=
+      `Detected: ${r.faces.map(f=>f.name).join(', ')||'Unknown'} · `+
+      `Objects: ${(r.objects||[]).map(o=>o.label).join(', ')||'none'}`;
+    document.getElementById('analyze-result').style.display='block';
+    document.getElementById('feed').src='data:image/jpeg;base64,'+r.annotated_image;
+    document.getElementById('feed').style.display='block';
+    document.getElementById('initOverlay').classList.add('hidden');
+    renderFaceCards(r.faces);
+  }catch(e){ setStatus(stat,'err','❌ '+e.message); }
+}
+
+// ── Search vector DB ───────────────────────────────────────────────────
+async function searchFace(){
+  const file=document.getElementById('afile').files[0];
+  const stat=document.getElementById('astat');
+  if(!file){ setStatus(stat,'warn','Select an image to search.'); return; }
+  setStatus(stat,'wait','<span class="spinner"></span> Searching vector database...');
+  const fd=new FormData(); fd.append('file',file);
+  try{
+    const r=await(await fetch('/search-face?top_k=5',{method:'POST',body:fd})).json();
+    if(r.error){ setStatus(stat,'err','❌ '+r.error); return; }
+    if(r.message){ setStatus(stat,'warn','⚠️ '+r.message); return; }
+    const hits=r.results.map(h=>`${h.name} (${Math.round(h.similarity*100)}%)`).join(', ');
+    setStatus(stat,'ok',`🔍 Matches: ${hits||'none found'}`);
+  }catch(e){ setStatus(stat,'err','❌ '+e.message); }
+}
+
+// ── AI Report ──────────────────────────────────────────────────────────
+async function generateReport(){
+  const area=document.getElementById('report-area');
+  area.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);"><span class="spinner"></span> Generating report...</div>';
+  try{
+    const r=await(await fetch('/report')).json();
+    area.innerHTML=`<div class="report-box">${r.report}</div>`;
+  }catch(e){
+    area.innerHTML=`<div class="report-box" style="color:var(--red);">Error: ${e.message}</div>`;
+  }
+}
+
+// ── Commentary ─────────────────────────────────────────────────────────
+function toggleCommentary(){
+  commentaryOn=!commentaryOn;
+  const overlay=document.getElementById('commentary-overlay');
+  const btn=document.getElementById('commBtn');
+  if(commentaryOn){
+    overlay.classList.add('visible');
+    btn.classList.add('active');
+    fetchCommentary();
+    commentaryTimer=setInterval(fetchCommentary,8000);
+  }else{
+    overlay.classList.remove('visible');
+    btn.classList.remove('active');
+    clearInterval(commentaryTimer);
+  }
+}
+
+async function fetchCommentary(){
+  try{
+    const r=await(await fetch('/commentary')).json();
+    document.getElementById('commentary-text').textContent=r.commentary;
+  }catch(_){}
+}
+
+// ── Recording ──────────────────────────────────────────────────────────
+async function toggleRecording(){
+  const btn=document.getElementById('recBtn');
+  if(!recording){
+    await fetch('/recording/start',{method:'POST'});
+    recording=true; btn.classList.add('active'); btn.textContent='⏹ Stop Rec';
+  }else{
+    const r=await(await fetch('/recording/stop',{method:'POST'})).json();
+    recording=false; btn.classList.remove('active'); btn.textContent='⏺ Record';
+    if(r.path) alert(`✅ Saved: ${r.path}  (${r.duration_sec}s)`);
+  }
+}
+
+// ── Load helpers ───────────────────────────────────────────────────────
+async function loadKnown(){
+  try{
+    const {names}=await(await fetch('/known-faces')).json();
+    const c=document.getElementById('known-list');
+    c.innerHTML=names.length
+      ?names.map(n=>`<div class="known-chip">${n}</div>`).join('')
+      :'<span style="font-size:13px;color:var(--muted);">None registered yet — use the Tools tab.</span>';
+  }catch(_){}
+}
+
+async function loadVdb(){
+  try{
+    const r=await(await fetch('/cluster-faces')).json();
+    const n=r.db_size??0;
+    document.getElementById('hvdb').textContent=n;
+    document.getElementById('svdb').textContent=n+' faces';
+  }catch(_){}
+}
+
+async function loadSession(){
+  try{
+    const s=await(await fetch('/stats')).json();
+    document.getElementById('ssid').textContent=s.current_session||'--';
+  }catch(_){}
+}
+
+function setStatus(el,type,html){
+  el.innerHTML=html;
+  el.className='form-status '+(type==='ok'?'ok':type==='err'?'err':'wait');
+}
+
+// ── Init ────────────────────────────────────────────────────────────────
+loadKnown();
+loadSession();
+setTimeout(loadVdb,2000);
+setInterval(loadVdb,30000);
+</script>
+</body>
+</html>
