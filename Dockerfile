@@ -32,12 +32,10 @@ RUN pip install --no-cache-dir "scikit-learn>=1.4.0"
 # Step E — ChromaDB vector store
 RUN pip install --no-cache-dir "chromadb>=0.5.0,<1.0.0"
 
-# Step F — TensorFlow CPU (explicit to avoid 2 GB CUDA build)
-RUN pip install --no-cache-dir "tensorflow-cpu>=2.16.0,<2.19.0"
-
-# Step G — DeepFace without opencv-python dep (headless already installed)
-# --no-deps skips deepface's opencv-python pull; install its other deps manually
-RUN pip install --no-cache-dir --no-deps "deepface>=0.0.89" && \
+# Step F — DeepFace + TensorFlow CPU together so pip can resolve all deps at once
+# --no-deps on deepface skips opencv-python (headless already installed above)
+RUN pip install --no-cache-dir "tensorflow-cpu" && \
+    pip install --no-cache-dir --no-deps "deepface>=0.0.89" && \
     pip install --no-cache-dir \
         "mtcnn>=0.1.0" \
         "retina-face>=0.0.1" \
