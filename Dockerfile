@@ -8,13 +8,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgomp1 libgl1-mesa-glx git \
     && rm -rf /var/lib/apt/lists/*
 
-# CPU-only PyTorch — saves ~1.5 GB vs the full CUDA build
+# CPU-only PyTorch — use --extra-index-url so PyPI deps still resolve
+# Falls back gracefully: emotion detection uses DeepFace if torch unavailable
 RUN pip install --no-cache-dir \
     "torch==2.2.0+cpu" \
     "torchvision==0.17.0+cpu" \
-    --index-url https://download.pytorch.org/whl/cpu
+    --extra-index-url https://download.pytorch.org/whl/cpu \
+    || echo "WARNING: PyTorch CPU install failed — emotion MLP disabled, DeepFace fallback active"
 
-# CLIP — required by YOLO-World (install before ultralytics)
+# CLIP for YOLO-World (install before ultralytics)
 RUN pip install --no-cache-dir "git+https://github.com/ultralytics/CLIP.git"
 
 # Remaining Python dependencies
