@@ -19,9 +19,33 @@ RUN pip install --no-cache-dir \
 # CLIP for YOLO-World (install before ultralytics)
 RUN pip install --no-cache-dir "git+https://github.com/ultralytics/CLIP.git"
 
-# Remaining Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# CV + data science layer
+RUN pip install --no-cache-dir \
+    "mediapipe==0.10.14" \
+    "opencv-python-headless>=4.9.0" \
+    "numpy>=1.24.0,<2.0" \
+    "Pillow>=10.0.0" \
+    "scikit-learn>=1.4.0" \
+    "tqdm>=4.66.0"
+
+# DeepFace + TensorFlow (largest dependency group)
+RUN pip install --no-cache-dir \
+    "tensorflow-cpu>=2.16.0,<2.19.0" \
+    "deepface>=0.0.89"
+
+# Vector DB
+RUN pip install --no-cache-dir "chromadb>=0.5.0,<1.0.0"
+
+# Object detection
+RUN pip install --no-cache-dir "ultralytics>=8.2.0"
+
+# API server + misc (starlette version is pinned by FastAPI automatically)
+RUN pip install --no-cache-dir \
+    "fastapi>=0.110.0" \
+    "uvicorn[standard]>=0.27.0" \
+    "python-multipart>=0.0.9" \
+    "jinja2>=3.1.3" \
+    "ollama>=0.3.0"
 
 COPY . .
 
