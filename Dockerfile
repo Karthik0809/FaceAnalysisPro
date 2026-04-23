@@ -20,11 +20,11 @@ RUN pip install --no-cache-dir \
     "tqdm>=4.66.0" \
     "ollama>=0.3.0"
 
-# Step B — OpenCV headless (pinned <4.11; 4.11+ requires numpy>=2)
-RUN pip install --no-cache-dir "opencv-python-headless==4.10.0.84"
-
-# Step C — MediaPipe (pinned; later versions removed solutions API)
-RUN pip install --no-cache-dir "mediapipe==0.10.14"
+# Step B+C — MediaPipe installs opencv-contrib-python (needs numpy>=2) which
+# conflicts with TF 2.15's numpy<2 pin. Install mediapipe first, then
+# force-reinstall headless OpenCV so cv2 comes from the numpy-1.x-compatible build.
+RUN pip install --no-cache-dir "mediapipe==0.10.14" && \
+    pip install --no-cache-dir --force-reinstall "opencv-python-headless==4.10.0.84"
 
 # Step D — scikit-learn
 RUN pip install --no-cache-dir "scikit-learn>=1.4.0"
