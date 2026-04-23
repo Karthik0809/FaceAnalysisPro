@@ -53,6 +53,11 @@ RUN pip install --no-cache-dir \
         "lightdsa" \
         "lightphe"
 
+# mediapipe pulls in jax 0.6.x, but tensorflow-cpu 2.15 pins ml_dtypes==0.3.2
+# which is too old for jax 0.6 (needs float8_e3m4). jax is not used by our app —
+# uninstalling it lets TF's wrapped "except ImportError" handle it cleanly.
+RUN pip uninstall -y jax jaxlib || true
+
 COPY . .
 
 ENV PORT=7860
