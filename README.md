@@ -9,7 +9,7 @@ pinned: false
 
 # PerceptAI
 
-**Live Demo:** [karthikmulugu08-faceanalysispro.hf.space](https://karthikmulugu08-faceanalysispro.hf.space)
+**Live Demo:** [PerceptAI on HuggingFace Spaces](https://karthikmulugu08-faceanalysispro.hf.space)
 
 A real-time computer vision system combining face analysis, full-body pose estimation, hand tracking, and object detection — streamed live to a browser dashboard via WebSocket.
 
