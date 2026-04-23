@@ -1,3 +1,10 @@
+---
+title: FaceAnalysis Pro
+sdk: docker
+app_port: 7860
+license: mit
+---
+
 # FaceAnalysis Pro
 
 A production-quality real-time computer vision system combining face analysis, full-body pose estimation, hand tracking, and object detection — streamed live to a clean browser dashboard. Everything runs locally with no cloud APIs required.
