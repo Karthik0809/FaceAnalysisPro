@@ -101,12 +101,3 @@ FaceAnalysisPro/
 └── Dockerfile
 ```
 
----
-
-## Resume Bullets
-
-> Built a real-time multi-modal behavioral analysis system combining MediaPipe (468-pt face mesh + 21-pt hand skeleton + 33-pt body pose), DeepFace emotion/age/gender, Facenet512 recognition, and YOLO-World object detection into a live-streamed FastAPI WebSocket pipeline deployed on HuggingFace Spaces
-
-> Engineered a CLIP-based open-vocabulary object detection pipeline (YOLO-World X) with 60+ custom classes; improved face recognition precision by averaging multi-augmented Facenet512 embeddings with a calibrated cosine similarity threshold
-
-> Designed a local-first AI layer using Ollama (llama3.2) and ChromaDB for session reporting and cross-session face similarity search; implemented DBSCAN clustering on 512-dim embeddings for unsupervised visitor re-identification
