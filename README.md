@@ -2,8 +2,6 @@
 
 **Live Demo:** [karthikmulugu08-faceanalysispro.hf.space](https://karthikmulugu08-faceanalysispro.hf.space)
 
-![Python](https://img.shields.io/badge/Python-3.10+-blue) ![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-green) ![MediaPipe](https://img.shields.io/badge/MediaPipe-0.10.14-orange) ![YOLO](https://img.shields.io/badge/YOLO--World-X-red) ![Docker](https://img.shields.io/badge/Deployed-HuggingFace-yellow)
-
 A real-time computer vision system combining face analysis, full-body pose estimation, hand tracking, and object detection — streamed live to a browser dashboard via WebSocket.
 
 ---
