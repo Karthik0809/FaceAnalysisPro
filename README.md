@@ -1,10 +1,3 @@
----
-title: FaceAnalysis Pro
-sdk: docker
-app_port: 7860
-license: mit
----
-
 # FaceAnalysis Pro
 
 **Live Demo:** [karthikmulugu08-faceanalysispro.hf.space](https://karthikmulugu08-faceanalysispro.hf.space)
