@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.pt
+*.db
+venv/
+recordings/
+chroma_db/
+models/
+.git/
+known_faces/*.jpg
+known_faces/*.jpeg
+known_faces/*.png
+known_faces/*.pkl

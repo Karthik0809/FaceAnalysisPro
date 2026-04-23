@@ -281,7 +281,7 @@ async def websocket_stream(websocket: WebSocket):
     """
     Browser-camera mode: client captures frames via getUserMedia and sends them
     as base64 JPEG. Server processes each frame and returns the annotated result.
-    Works on any deployment (local, cloud, HuggingFace Spaces) — no server camera needed.
+    Works on any deployment (local, cloud) — no server camera needed.
     """
     await websocket.accept()
     frame_num = 0

@@ -51,6 +51,6 @@ RUN pip install --no-cache-dir "tensorflow-cpu" && \
 
 COPY . .
 
-ENV PORT=7860
-EXPOSE 7860
+ENV PORT=8000
+EXPOSE 8000
 CMD uvicorn main:app --host 0.0.0.0 --port ${PORT}
