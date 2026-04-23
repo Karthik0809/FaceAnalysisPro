@@ -540,7 +540,7 @@ async function startStream(){
       <div class="init-title" style="color:var(--red)">Camera Access Denied</div>
       <div class="init-sub">${err.name==='NotFoundError'
         ? 'No camera found on this device.'
-        : 'Allow camera permission and try again.'}</div>`;
+        : `Allow camera permission and try again. (${err.name})`}</div>`;
     return;
   }
 
@@ -550,8 +550,12 @@ async function startStream(){
   captureVideo.autoplay = true;
   captureVideo.muted    = true;
   captureVideo.playsInline = true;
-  await captureVideo.play();
-  await new Promise(r => { captureVideo.onloadedmetadata = r; });
+  await captureVideo.play().catch(()=>{});
+  await new Promise(r => {
+    if(captureVideo.readyState >= 1) { r(); return; }
+    captureVideo.onloadedmetadata = r;
+    setTimeout(r, 3000); // fallback if metadata never fires
+  });
 
   // Canvas to extract JPEG frames
   captureCanvas = document.createElement('canvas');
