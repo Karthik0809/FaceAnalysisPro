@@ -34,7 +34,7 @@ RUN pip install --no-cache-dir "scikit-learn>=1.4.0"
 # last series that accepts protobuf 3.x. retina-face/mtcnn installed with
 # --no-deps so they cannot upgrade tensorflow or protobuf.
 RUN pip install --no-cache-dir \
-        "protobuf>=3.20.3,<4.0.0" \
+        "protobuf>=4.25.3,<5.0.0" \
         "tensorflow-cpu>=2.13.0,<2.16.0" && \
     pip install --no-cache-dir --no-deps "deepface>=0.0.89" && \
     pip install --no-cache-dir --no-deps \
