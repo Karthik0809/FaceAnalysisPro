@@ -62,7 +62,7 @@ _rec: dict = {"active": False, "writer": None, "path": None, "started": None}
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request, "index.html")
 
 # ── Face registration ─────────────────────────────────────────────────────────
 
