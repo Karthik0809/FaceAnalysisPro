@@ -30,16 +30,14 @@ RUN pip install --no-cache-dir "mediapipe==0.10.14" && \
 # Step D — scikit-learn
 RUN pip install --no-cache-dir "scikit-learn>=1.4.0"
 
-# Step E — PyTorch CPU + YOLO-World (object detection)
-# Install CPU-only torch first to avoid downloading 2GB CUDA binaries.
-# Pre-install CLIP (YOLO-World dependency) via git so it doesn't auto-install at runtime.
+# Step E — PyTorch CPU + YOLOv8 (object detection, 80 COCO classes)
+# CPU-only torch avoids downloading the 2GB CUDA build.
 RUN pip install --no-cache-dir \
         torch torchvision --index-url https://download.pytorch.org/whl/cpu && \
-    pip install --no-cache-dir "git+https://github.com/ultralytics/CLIP.git" && \
     pip install --no-cache-dir "ultralytics>=8.2.0"
 
-# Pre-download YOLO-World model weights at build time so runtime never needs internet
-RUN python -c "from ultralytics import YOLOWorld; YOLOWorld('yolov8x-worldv2.pt')"
+# Pre-download YOLOv8s weights at build time so runtime never needs internet
+RUN python -c "from ultralytics import YOLO; YOLO('yolov8s.pt')"
 
 # Step F — DeepFace + TensorFlow CPU
 # protobuf must stay <4 for mediapipe==0.10.14; tensorflow-cpu<2.16 is the

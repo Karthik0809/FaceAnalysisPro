@@ -41,52 +41,12 @@ except Exception:
     CHROMA_OK = False
     def _chroma_add(*_, **__): return False
 
-# ── Optional: YOLO-World open-vocabulary object detection ────────────────────
-# YOLO-World uses CLIP similarity → confidence scores are lower than regular YOLO;
-# use threshold 0.20–0.25 (not 0.5+).
-# NOTE: "smartphone" removed — CLIP maps any flat dark rectangle to it, causing
-# wallets and watches to score as smartphone.  Use specific phone terms instead.
-_WORLD_CLASSES = [
-    # Writing instruments
-    "pen", "ballpoint pen", "pencil", "marker", "highlighter", "fountain pen",
-    # Phones — specific phrases, NOT generic "smartphone"
-    "mobile phone", "cell phone",
-    # Computer peripherals
-    "computer mouse", "wireless mouse", "optical mouse",
-    "keyboard", "laptop computer", "tablet computer",
-    # Watches — "wristwatch" includes wrist context; CLIP scores high for wrist+dial
-    "wristwatch", "analog wristwatch", "digital wristwatch",
-    "Casio watch", "sport watch",
-    # Audio
-    "earphones", "headphones", "earbuds", "AirPods", "wireless earbuds",
-    # Other electronics
-    "remote control", "TV remote", "smartwatch", "fitness tracker",
-    "charger", "power bank", "USB drive", "camera", "calculator",
-    # Wallets — descriptive phrases beat plain "wallet" against phone confusion
-    "leather wallet", "bifold wallet", "money wallet",
-    "purse", "handbag", "clutch bag", "backpack", "bag",
-    # Accessories
-    "keys", "keychain", "glasses", "sunglasses", "ring", "bracelet",
-    # Beauty / personal care
-    "lipstick", "lip balm", "lip gloss", "mascara", "makeup compact",
-    "perfume bottle", "deodorant stick", "nail polish", "foundation bottle",
-    # Stationery / office
-    "book", "notebook", "notepad", "paper", "folder", "scissors",
-    "ruler", "eraser", "stapler", "tape", "sticky notes", "envelope",
-    # Food / drink
-    "cup", "mug", "water bottle", "plastic bottle", "bottle",
-    "coffee cup", "snack", "apple", "banana", "food",
-    # Other
-    "hat", "cap", "umbrella", "coin", "credit card",
-    "toothbrush", "medicine bottle", "toy",
-]
-
+# ── Optional: YOLOv8 object detection (80 COCO classes) ──────────────────────
 try:
-    from ultralytics import YOLOWorld as _YOLO_cls
-    _yolo = _YOLO_cls("yolov8x-worldv2.pt")   # open-vocabulary, best accuracy
-    _yolo.set_classes(_WORLD_CLASSES)
+    from ultralytics import YOLO as _YOLO_cls
+    _yolo = _YOLO_cls("yolov8s.pt")
     YOLO_OK = True
-    print(f"[yolo] YOLO-World ready — {len(_WORLD_CLASSES)} custom classes")
+    print("[yolo] YOLOv8s ready")
 except Exception as e:
     YOLO_OK = False
     _yolo   = None
@@ -308,7 +268,7 @@ class FaceAnalyzer:
                     if cls in _YOLO_SKIP:
                         continue
                     conf = float(box.conf[0])
-                    if conf < 0.22:   # YOLO-World CLIP scores are lower than regular YOLO
+                    if conf < 0.40:
                         continue
                     x1, y1, x2, y2 = map(int, box.xyxy[0])
                     cache.append((x1, y1, x2, y2, yres.names[cls], conf))
