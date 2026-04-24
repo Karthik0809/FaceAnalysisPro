@@ -35,6 +35,9 @@ RUN pip install --no-cache-dir \
         torch torchvision --index-url https://download.pytorch.org/whl/cpu && \
     pip install --no-cache-dir "ultralytics>=8.2.0"
 
+# Pre-download YOLO-World model weights at build time so runtime never needs internet
+RUN python -c "from ultralytics import YOLOWorld; YOLOWorld('yolov8x-worldv2.pt')"
+
 # Step F — DeepFace + TensorFlow CPU
 # protobuf must stay <4 for mediapipe==0.10.14; tensorflow-cpu<2.16 is the
 # last series that accepts protobuf 3.x. retina-face/mtcnn installed with
